@@ -26,4 +26,8 @@ behaviour may change without a deprecation period.
   refuses to restore it rather than empty itself. A witness keeps a hundred times Raft's
   default log behind its snapshots, so that a member is brought up to date from the log.
 
+- `wegwitness health` asks the running witness, on its own cluster port and with the
+  cluster's secret, whether it takes part in a cluster, and exits 0 when it does. A
+  witness still waiting to be added, or one taken out, is not healthy: it holds no vote.
+
 - `make interop` runs a witness against real `weg` servers.

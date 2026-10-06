@@ -39,6 +39,9 @@ It asks to be added, waits for the log to reach it, and is a voter from then on.
 does nothing on later starts, so a unit file can keep it. A sandboxed systemd unit is in
 [packaging/systemd](packaging/systemd/wegwitness.service).
 
+`wegwitness health` asks the running witness whether it takes part in a cluster, and exits
+0 when it does, for a monitoring system or a container runtime to call.
+
 `weg cluster status`, on any member, lists the witness with the role `witness` and how far
 it has got. To take it out, remove it from a member: `weg cluster remove witness-…`.
 

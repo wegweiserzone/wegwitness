@@ -330,3 +330,19 @@ func TestAWitnessAnswersForItselfOnTheForwardStream(t *testing.T) {
 		t.Errorf("a write: %d, %+v (%v); want it refused with 503", resp.StatusCode, p, err)
 	}
 }
+
+// health asks a witness about itself this way, over its own cluster port.
+func TestAWitnessCanBeProbed(t *testing.T) {
+	t.Parallel()
+	w := startWitness(t, Prefix+"w")
+	id, addr := w.Member()
+	tr, _ := port(t)
+
+	p, err := Probe(t.Context(), tr, addr)
+	if err != nil {
+		t.Fatalf("Probe: %v", err)
+	}
+	if p.ID != id || p.TakesPart() {
+		t.Errorf("probed %+v, want %s, in no cluster yet", p, id)
+	}
+}

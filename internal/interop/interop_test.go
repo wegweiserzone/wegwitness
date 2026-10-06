@@ -290,6 +290,18 @@ func TestTwoServersAndAWitness(t *testing.T) {
 		}
 	})
 
+	t.Run("asked on its own port, the witness says it takes part", func(t *testing.T) {
+		tr, err := transport.New(transport.Config{Secret: secret})
+		if err != nil {
+			t.Fatalf("transport: %v", err)
+		}
+		_, addr := w.Member()
+		p, err := witness.Probe(t.Context(), tr, addr)
+		if err != nil || !p.TakesPart() || p.Leader == "" {
+			t.Errorf("probed %+v, %v; want it taking part, with a leader", p, err)
+		}
+	})
+
 	t.Run("a second witness would be half of the voters, and is refused", func(t *testing.T) {
 		other := startWitness(t, witness.Prefix+"other")
 		err := other.Join(t.Context(), a.cluster)

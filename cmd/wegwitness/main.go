@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/wegweiserzone/wegwitness/internal/buildinfo"
 	"github.com/wegweiserzone/wegwitness/internal/config"
@@ -33,10 +34,14 @@ const usage = `wegwitness keeps a Wegweiser cluster's log and votes, and answers
 
 Usage:
   wegwitness serve [--config FILE] [--join ADDRESS]
+  wegwitness health [--config FILE]
   wegwitness version
 
 A witness joins from its first start, with --join and the cluster address of
 any member. It leaves when a member removes it: weg cluster remove ID.
+
+health asks the running witness, on its own cluster port, whether it takes
+part in a cluster, and exits 0 when it does.
 `
 
 func main() {
@@ -59,8 +64,14 @@ func Main(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return exitUsage
 	}
 	switch args[0] {
-	case "serve":
-		err := serve(ctx, args[1:], stderr)
+	case "serve", "health":
+		run := serve
+		if args[0] == "health" {
+			run = func(ctx context.Context, args []string, stderr io.Writer) error {
+				return health(ctx, args, stdout, stderr)
+			}
+		}
+		err := run(ctx, args[1:], stderr)
 		switch {
 		case errors.Is(err, flag.ErrHelp):
 			return exitOK
@@ -158,4 +169,66 @@ func serve(ctx context.Context, args []string, stderr io.Writer) error {
 	}
 	<-ctx.Done()
 	return nil
+}
+
+// healthWait bounds the whole question, so that a health check of a witness
+// that hangs fails rather than hangs with it.
+const healthWait = 5 * time.Second
+
+func health(ctx context.Context, args []string, stdout, stderr io.Writer) error {
+	fs := flag.NewFlagSet("health", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	path := fs.String("config", "/etc/wegwitness/config.yaml", "the configuration file")
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return err
+		}
+		return usageError{err}
+	}
+	if fs.NArg() > 0 {
+		return usageError{fmt.Errorf("health takes no arguments, and was given %q", fs.Args())}
+	}
+
+	cfg, err := config.Load(*path)
+	if err != nil {
+		return err
+	}
+	tr, err := transport.New(transport.Config{Secret: cfg.Secret})
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, healthWait)
+	defer cancel()
+	p, err := witness.Probe(ctx, tr, local(cfg.Listen))
+	if err != nil {
+		return err
+	}
+
+	switch {
+	case !p.Replicating:
+		return fmt.Errorf("%s is in no cluster yet; start it with --join and a member's cluster address", p.ID)
+	case p.Removed:
+		return fmt.Errorf("%s has been taken out of its cluster", p.ID)
+	}
+	leader := p.Leader
+	if leader == "" {
+		leader = "nobody, for the moment"
+	}
+	_, err = fmt.Fprintf(stdout, "%s takes part: applied %d of %d, %s leads\n", p.ID, p.Applied, p.Committed, leader)
+	return err
+}
+
+// local is the address this witness is asked at from the same machine: the
+// one it listens on, with loopback for an address that means every
+// interface. The address it advertises is the one the other members reach,
+// which from inside a container often is not this machine at all.
+func local(listen string) string {
+	host, port, err := net.SplitHostPort(listen)
+	if err != nil {
+		return listen
+	}
+	if ip := net.ParseIP(host); host == "" || (ip != nil && ip.IsUnspecified()) {
+		host = "127.0.0.1"
+	}
+	return net.JoinHostPort(host, port)
 }
