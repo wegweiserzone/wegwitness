@@ -1,0 +1,159 @@
+name: Release
+
+# A tag is the trigger, so cutting a release is `git tag -s v0.1.0 && git push
+# --tags` and nothing else. The version the binary reports comes from the tag
+# through `git describe`, which is why the checkout needs the full history.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  GOTOOLCHAIN: local
+  # The oldest weg this witness works with, as the changelog states it. The
+  # release is checked against exactly that one.
+  WEG_MINIMUM: v0.5.0
+
+jobs:
+  # Publishing binaries nobody has run is worse than publishing none: the tag
+  # is permanent and a bad one has to be deleted rather than fixed.
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: wegweiserzone/wegweiser
+          ref: ${{ env.WEG_MINIMUM }}
+          path: wegweiser
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: Test with race detector
+        run: go test -race -shuffle=on ./...
+
+      - name: Vulnerabilities
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+      - name: Against the oldest weg it claims to work with
+        run: |
+          make -C wegweiser build
+          make interop WEG_BIN="$PWD/wegweiser/bin/weg"
+
+  binaries:
+    name: Binaries
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.26"
+          cache: true
+
+      # One archive per platform, each carrying the licence: AGPL-3.0 asks for
+      # it to travel with the binary. The unit and the example configuration
+      # go with it, since a witness is installed by hand.
+      - name: Build
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          for arch in amd64 arm64; do
+            GOOS=linux GOARCH="$arch" make build
+            file bin/wegwitness
+            tar -czf "dist/wegwitness_${version}_linux_${arch}.tar.gz" \
+              -C bin wegwitness \
+              -C "$GITHUB_WORKSPACE" LICENSE README.md CHANGELOG.md \
+              docs/wegwitness.example.yaml packaging/systemd/wegwitness.service
+          done
+          cd dist && sha256sum ./*.tar.gz > checksums.txt && cat checksums.txt
+
+      - name: Take the notes from the changelog
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="## [$version]" '
+            index($0, v) == 1 { on = 1; next }
+            on && /^## / { exit }
+            on { print }
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "::error::CHANGELOG.md has no section for $version"
+            exit 1
+          fi
+          head -5 notes.md
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file notes.md \
+            --verify-tag \
+            dist/*
+
+  image:
+    name: Image
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # buildx and the docker CLI are on the runner already, which keeps the
+      # organisation's "GitHub-owned and verified actions only" policy intact.
+      # --provenance=false and oci-mediatypes=false are wegweiser's, for the
+      # same reasons: a manifest list of exactly the two images, and a health
+      # check that Podman reads too.
+      - name: Build and push
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+
+          echo "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker buildx create --use --name wegwitness >/dev/null
+
+          docker buildx build \
+            --file packaging/Containerfile \
+            --platform linux/amd64,linux/arm64 \
+            --provenance=false \
+            --build-arg "VERSION=$version" \
+            --build-arg "COMMIT=$GITHUB_SHA" \
+            --build-arg "DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --tag "$image:$version" \
+            --tag "$image:latest" \
+            --output type=image,push=true,oci-mediatypes=false .
+
+      - name: The health check survived the push
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker pull --platform linux/amd64 "$image:${GITHUB_REF_NAME#v}"
+          check=$(docker inspect --format '{{json .Config.Healthcheck}}' \
+            "$image:${GITHUB_REF_NAME#v}")
+          echo "$check"
+          case "$check" in
+            *wegwitness*health*) ;;
+            *) echo "::error::the image has no health check"; exit 1 ;;
+          esac
+          docker buildx imagetools inspect --raw "$image:${GITHUB_REF_NAME#v}" \
+            > manifest.json
+          if ! grep -q 'vnd.docker.distribution.manifest.list.v2+json' manifest.json; then
+            head -c 400 manifest.json
+            echo "::error::pushed with OCI media types, which no runtime but Docker reads a health check out of"
+            exit 1
+          fi

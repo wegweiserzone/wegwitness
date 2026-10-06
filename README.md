@@ -25,7 +25,10 @@ for how the cluster tells it apart. In short:
 
 ## Running one
 
-Build it with `make build`, or `go install github.com/wegweiserzone/wegwitness/cmd/wegwitness@latest`.
+Every [release](https://github.com/wegweiserzone/wegwitness/releases) carries a static binary
+for linux/amd64 and linux/arm64, with the licence, the example configuration and the systemd
+unit beside it. `go install github.com/wegweiserzone/wegwitness/cmd/wegwitness@latest` and
+`make build` work too.
 
 Write a configuration file with the cluster's secret and the address the members reach the
 witness at; [docs/wegwitness.example.yaml](docs/wegwitness.example.yaml) describes every

@@ -36,3 +36,8 @@ behaviour may change without a deprecation period.
   user without privileges, with `wegwitness health` as its health check. `make image`
   builds it with Podman. The configuration is mounted rather than baked in, since a
   witness cannot start without the cluster's secret.
+
+- A tag publishes a release: binaries for linux/amd64 and linux/arm64 with the licence,
+  the example configuration and the systemd unit beside them, and the image at
+  `ghcr.io/wegweiserzone/wegwitness`. Before anything is published, the witness is run
+  against the oldest Wegweiser it claims to work with.
