@@ -1,0 +1,32 @@
+# wegwitness configuration.
+#
+# `wegwitness serve` reads /etc/wegwitness/config.yaml unless --config names
+# another file. Everything here is needed before the witness is running.
+# Who the other members are is not: that is in the cluster's log.
+
+cluster:
+  # The identifier this witness is a member by. It has to begin "witness-",
+  # which is how the cluster tells a witness from a member that holds data.
+  # Left out, one is minted on the first start and kept beside the log; once
+  # it is there, it never changes.
+  # id: "witness-office"
+
+  # Where to listen for the other members, as host:port.
+  listen: ":8054"
+
+  # Where the other members reach this witness. Required, because the address
+  # listened on may be every interface, which is not one anybody can dial.
+  advertise: "192.0.2.9:8054"
+
+  # The cluster's shared secret, base64, the same as on every member.
+  # Whoever holds it can speak as any member, so this file wants to be
+  # readable by the witness alone.
+  secret: ""
+
+# Where Raft keeps the log and its snapshots. A witness keeps far more log than
+# a member does, because it has nothing else to spend the disk on.
+dir: "/var/lib/wegwitness"
+
+log:
+  # How loudly to report: debug, info, warn or error.
+  level: "info"

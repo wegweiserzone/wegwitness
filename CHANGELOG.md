@@ -1,0 +1,29 @@
+# Changelog
+
+All notable changes to this project are documented here.
+
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until v1.0.0 the
+behaviour may change without a deprecation period.
+
+## [Unreleased]
+
+### Added
+
+- `wegwitness serve` runs a witness for a Wegweiser cluster: a voter that keeps the log,
+  applies none of it, and answers no queries. It mints an identifier beginning `witness-`
+  on its first start, and joins with `--join` and the cluster address of any member, in
+  the two steps a voter joins in. The flag is ignored once it is a member.
+
+- A witness that wins an election hands leadership to a member that holds data, trying
+  each in turn until one takes it.
+
+- Asked over the cluster port how far it has got, a witness answers the way a member does,
+  so `weg cluster status` lists it with its progress. Anything else sent to it is refused
+  with 503.
+
+- A log snapshot a witness writes says a witness wrote it, so that a member with a store
+  refuses to restore it rather than empty itself. A witness keeps a hundred times Raft's
+  default log behind its snapshots, so that a member is brought up to date from the log.
+
+- `make interop` runs a witness against real `weg` servers.

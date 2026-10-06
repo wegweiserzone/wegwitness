@@ -1,0 +1,65 @@
+[Unit]
+Description=wegwitness, a witness for a Wegweiser cluster
+Documentation=https://github.com/wegweiserzone/wegwitness
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/wegwitness serve
+# On the first start, and harmless after it: a witness that is a member
+# already ignores the flag.
+# ExecStart=/usr/bin/wegwitness serve --join 192.0.2.1:8054
+
+# Nothing to reload: the file holds what a witness needs to start, and
+# everything else is the cluster's log.
+
+DynamicUser=yes
+
+# StateDirectory is /var/lib/wegwitness, where the log is kept by default.
+# ConfigurationDirectory is /etc/wegwitness, which is read by default. The
+# configuration holds the cluster's secret, and so does the log: a witness is
+# exactly as sensitive as a server holding the data (wegweiser's
+# docs/decisions/d39-the-witness.md).
+StateDirectory=wegwitness
+StateDirectoryMode=0700
+ConfigurationDirectory=wegwitness
+
+# The cluster port needs no capability: it is not a privileged port.
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateUsers=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+UMask=0077
+
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+SystemCallErrorNumber=EPERM
+
+KillSignal=SIGTERM
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

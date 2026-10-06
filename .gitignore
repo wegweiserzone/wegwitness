@@ -1,0 +1,19 @@
+# Build output
+/bin/
+
+# Test and coverage artefacts
+*.out
+*.test
+/coverage.*
+
+# Local runtime state
+/wegwitness.yaml
+
+# Agent instructions, local only
+/CLAUDE.md
+
+# Editors and OS
+.DS_Store
+*.swp
+.idea/
+.vscode/

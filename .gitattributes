@@ -1,0 +1,4 @@
+# Normalised in the repository and checked out as LF, so that a contributor on
+# Windows cannot commit CRLF into a Go file and rewrite
+# every line of it. Nothing in the index has CRLF today; this keeps it that way.
+* text=auto eol=lf
