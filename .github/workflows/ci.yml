@@ -89,6 +89,19 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: make build
 
+      # Otherwise the image is built for the first time by the release that
+      # pushes it, and a tag is a bad place to find out the Containerfile no
+      # longer works. It is run once, so that a binary that does not start in
+      # scratch is caught here too.
+      - name: The container image builds and starts
+        if: matrix.goarch == 'amd64'
+        run: |
+          docker buildx build --file packaging/Containerfile --platform linux/amd64 \
+            --build-arg "VERSION=ci" --build-arg "COMMIT=$GITHUB_SHA" \
+            --load --tag wegwitness:ci .
+          docker run --rm wegwitness:ci version
+          docker inspect --format '{{json .Config.Healthcheck}}' wegwitness:ci | grep -q 'wegwitness.*health'
+
   vuln:
     name: Vulnerabilities
     runs-on: ubuntu-latest

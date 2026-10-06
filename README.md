@@ -39,6 +39,15 @@ It asks to be added, waits for the log to reach it, and is a voter from then on.
 does nothing on later starts, so a unit file can keep it. A sandboxed systemd unit is in
 [packaging/systemd](packaging/systemd/wegwitness.service).
 
+Or as a container, which is `scratch` with the one binary in it. The configuration is
+mounted, and the log lives in a volume:
+
+```console
+$ podman run -d --name wegwitness -p 8054:8054 \
+    -v ./config.yaml:/etc/wegwitness/config.yaml:ro -v wegwitness:/var/lib/wegwitness \
+    ghcr.io/wegweiserzone/wegwitness serve --join 192.0.2.1:8054
+```
+
 `wegwitness health` asks the running witness whether it takes part in a cluster, and exits
 0 when it does, for a monitoring system or a container runtime to call.
 

@@ -31,3 +31,8 @@ behaviour may change without a deprecation period.
   witness still waiting to be added, or one taken out, is not healthy: it holds no vote.
 
 - `make interop` runs a witness against real `weg` servers.
+
+- `packaging/Containerfile` builds an image of the binary on `scratch`, running as a
+  user without privileges, with `wegwitness health` as its health check. `make image`
+  builds it with Podman. The configuration is mounted rather than baked in, since a
+  witness cannot start without the cluster's secret.

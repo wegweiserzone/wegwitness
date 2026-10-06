@@ -1,0 +1,79 @@
+# wegwitness, as one static binary on nothing.
+#
+# The final stage is scratch: no shell, no package manager and no libc, so
+# there is nothing in the image to exploit that is not the witness itself.
+# Its health check is `wegwitness health`, which asks the witness on its own
+# cluster port, because scratch has nothing else to ask with.
+#
+#   podman build --format docker -f packaging/Containerfile -t wegwitness .
+#   podman run --rm -p 8054:8054 \
+#     -v ./config.yaml:/etc/wegwitness/config.yaml:ro -v wegwitness:/var/lib/wegwitness \
+#     wegwitness serve --join 192.0.2.1:8054
+#
+# The configuration is mounted rather than baked in: a witness cannot start
+# without the cluster's secret and the address the members reach it at, and
+# neither has a default. docs/wegwitness.example.yaml describes the file.
+#
+# --format docker is what keeps the HEALTHCHECK: the OCI image format has no
+# field for one, and podman drops it with a warning rather than failing.
+
+# --platform pins the build stage to the machine doing the building, so a
+# multi-architecture image cross-compiles instead of running an emulated
+# toolchain per architecture.
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26-alpine AS build
+
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+# The same flags the Makefile uses, so the image and a local build are the same
+# binary.
+ARG VERSION=dev
+ARG COMMIT=
+ARG DATE=
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -trimpath \
+      -ldflags "-s -w \
+        -X github.com/wegweiserzone/wegwitness/internal/buildinfo.version=${VERSION} \
+        -X github.com/wegweiserzone/wegwitness/internal/buildinfo.commit=${COMMIT} \
+        -X github.com/wegweiserzone/wegwitness/internal/buildinfo.date=${DATE}" \
+      -o /wegwitness ./cmd/wegwitness
+
+# scratch has no mkdir, so the directory the log goes into is made here.
+RUN mkdir -p /out/etc/wegwitness /out/var/lib/wegwitness \
+ && chown -R 65532:65532 /out/var/lib/wegwitness
+
+FROM scratch
+
+ARG VERSION=dev
+ARG COMMIT=
+ARG DATE=
+LABEL org.opencontainers.image.source="https://github.com/wegweiserzone/wegwitness" \
+      org.opencontainers.image.description="A witness for a Wegweiser cluster: a voter that keeps the log, answers nothing, and hands leadership on" \
+      org.opencontainers.image.licenses="AGPL-3.0-or-later" \
+      org.opencontainers.image.title="wegwitness" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${COMMIT}" \
+      org.opencontainers.image.created="${DATE}"
+
+COPY --from=build --chown=65532:65532 /out/ /
+COPY --from=build /wegwitness /usr/bin/wegwitness
+
+# 65532 is the conventional "nonroot" identity of the distroless images. The
+# cluster port is not a privileged one, so the witness needs no capability.
+USER 65532:65532
+
+VOLUME /var/lib/wegwitness
+EXPOSE 8054/tcp
+
+# Healthy means a member of a cluster that has not been taken out of it, not
+# merely a process that is up: a witness waiting to be added holds no vote.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD ["/usr/bin/wegwitness", "health"]
+
+ENTRYPOINT ["/usr/bin/wegwitness"]
+CMD ["serve"]

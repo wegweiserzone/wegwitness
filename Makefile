@@ -43,6 +43,14 @@ build: ## Build the wegwitness binary into bin/
 install: ## Install wegwitness into GOPATH/bin
 	CGO_ENABLED=0 go install -trimpath -ldflags "$(LDFLAGS)" ./cmd/wegwitness
 
+IMAGE ?= wegwitness
+
+.PHONY: image
+image: ## Build the container image
+	podman build --format docker \
+		--build-arg "VERSION=$(VERSION)" --build-arg "COMMIT=$(COMMIT)" --build-arg "DATE=$(DATE)" \
+		-f packaging/Containerfile -t $(IMAGE) .
+
 .PHONY: clean
 clean: ## Remove build and coverage artefacts
 	rm -rf $(BIN_DIR) coverage.out coverage.html
