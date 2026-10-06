@@ -25,6 +25,8 @@ for how the cluster tells it apart. In short:
 
 ## Running one
 
+It needs Wegweiser 0.5.0 or later on the servers it joins.
+
 Every [release](https://github.com/wegweiserzone/wegwitness/releases) carries a static binary
 for linux/amd64 and linux/arm64, with the licence, the example configuration and the systemd
 unit beside it. `go install github.com/wegweiserzone/wegwitness/cmd/wegwitness@latest` and

@@ -8,6 +8,13 @@ behaviour may change without a deprecation period.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.1.0] - 2026-10-06
+
+The first release. It works with Wegweiser 0.5.0 or later, the first release whose
+cluster takes a witness.
+
 ### Added
 
 - `wegwitness serve` runs a witness for a Wegweiser cluster: a voter that keeps the log,
@@ -41,3 +48,6 @@ behaviour may change without a deprecation period.
   the example configuration and the systemd unit beside them, and the image at
   `ghcr.io/wegweiserzone/wegwitness`. Before anything is published, the witness is run
   against the oldest Wegweiser it claims to work with.
+
+[Unreleased]: https://github.com/wegweiserzone/wegwitness/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/wegweiserzone/wegwitness/releases/tag/v0.1.0
