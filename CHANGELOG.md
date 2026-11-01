@@ -8,6 +8,14 @@ behaviour may change without a deprecation period.
 
 ## [Unreleased]
 
+### Added
+
+- Every release carries deb and rpm packages for amd64 and arm64 beside the archives,
+  listed in `checksums.txt`. They install `wegwitness` and its systemd unit. Installing
+  starts nothing. The configuration file is written from the example only where there is
+  none, and is never replaced afterwards. An upgrade restarts a witness that was running
+  and leaves a stopped one stopped. Purging takes the configuration and leaves the log.
+
 ### Security
 
 - The systemd unit reads `/etc/wegwitness/config.yaml` as a credential, so the file can be

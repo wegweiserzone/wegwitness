@@ -1,0 +1,59 @@
+# The deb and rpm packages (wegweiser's docs/decisions/d54-installed-from-packages.md).
+#
+# `make package` builds them into dist/ and sets the two variables used below.
+# The packages carry no dependencies: the binary is static.
+
+name: wegwitness
+arch: ${PKG_ARCH}
+platform: linux
+version: ${PKG_VERSION}
+section: net
+priority: optional
+maintainer: NichSchlagen <tim@wegweiser.zone>
+vendor: Wegweiser
+homepage: https://wegweiser.zone
+license: AGPL-3.0-or-later
+description: |
+  Witness for a Wegweiser cluster.
+  A Raft voter that keeps the cluster's log, applies none of it and answers no
+  queries, so that two Wegweiser servers have the third vote a majority needs.
+
+contents:
+  - src: bin/wegwitness
+    dst: /usr/bin/wegwitness
+    file_info:
+      mode: 0755
+
+  # /usr/lib rather than /etc: a unit under /etc/systemd/system belongs to the
+  # administrator, and takes precedence over this one.
+  - src: packaging/systemd/wegwitness.service
+    dst: /usr/lib/systemd/system/wegwitness.service
+    file_info:
+      mode: 0644
+
+  # The example, and not /etc/wegwitness/config.yaml itself. The post-install
+  # script copies it there once, when there is no file yet; owning the file
+  # would have dpkg ask about it on every release whose example changed.
+  - dst: /usr/share/doc/wegwitness
+    type: dir
+  - src: docs/wegwitness.example.yaml
+    dst: /usr/share/doc/wegwitness/wegwitness.example.yaml
+    file_info:
+      mode: 0644
+  - src: LICENSE
+    dst: /usr/share/doc/wegwitness/LICENSE
+    file_info:
+      mode: 0644
+  - src: README.md
+    dst: /usr/share/doc/wegwitness/README.md
+    file_info:
+      mode: 0644
+  - src: CHANGELOG.md
+    dst: /usr/share/doc/wegwitness/CHANGELOG.md
+    file_info:
+      mode: 0644
+
+scripts:
+  postinstall: packaging/scripts/postinstall.sh
+  preremove: packaging/scripts/preremove.sh
+  postremove: packaging/scripts/postremove.sh

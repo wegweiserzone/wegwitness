@@ -51,9 +51,28 @@ image: ## Build the container image
 		--build-arg "VERSION=$(VERSION)" --build-arg "COMMIT=$(COMMIT)" --build-arg "DATE=$(DATE)" \
 		-f packaging/Containerfile -t $(IMAGE) .
 
+# Pinned, as wegweiser pins it: a new nfpm can write a different package from
+# the same file.
+NFPM_VERSION := v2.48.0
+
+# The architecture packaged is the one built, so `GOARCH=arm64 make package`
+# packages for arm64. A package version has no leading v.
+PKG_ARCH    ?= $(or $(GOARCH),$(shell go env GOARCH))
+PKG_VERSION := $(patsubst v%,%,$(VERSION))
+
+# nfpm runs here, whatever GOARCH says.
+.PHONY: package
+package: build ## Build the deb and rpm packages into dist/
+	@mkdir -p dist
+	for format in deb rpm; do \
+		env -u GOOS -u GOARCH PKG_ARCH=$(PKG_ARCH) PKG_VERSION=$(PKG_VERSION) \
+			go run github.com/goreleaser/nfpm/v2/cmd/nfpm@$(NFPM_VERSION) \
+			package -f packaging/nfpm.yaml -p $$format -t dist/; \
+	done
+
 .PHONY: clean
 clean: ## Remove build and coverage artefacts
-	rm -rf $(BIN_DIR) coverage.out coverage.html
+	rm -rf $(BIN_DIR) dist coverage.out coverage.html
 
 .PHONY: check
 check: tidy-check fmt-check vet lint test ## Run every check CI runs

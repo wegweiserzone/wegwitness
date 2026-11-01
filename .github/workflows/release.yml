@@ -62,10 +62,13 @@ jobs:
 
       # One archive per platform, each carrying the licence: AGPL-3.0 asks for
       # it to travel with the binary. The unit and the example configuration
-      # go with it, since a witness is installed by hand.
+      # go with it, for a witness installed by hand.
       - name: Build
         run: |
           version="${GITHUB_REF_NAME#v}"
+          # One build date for every build below, so that the binary in a
+          # package is the binary in the archive beside it.
+          export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
           mkdir -p dist
           for arch in amd64 arm64; do
             GOOS=linux GOARCH="$arch" make build
@@ -74,8 +77,11 @@ jobs:
               -C bin wegwitness \
               -C "$GITHUB_WORKSPACE" LICENSE README.md CHANGELOG.md \
               docs/wegwitness.example.yaml packaging/systemd/wegwitness.service
+            # The deb and the rpm, which the repository at pkg.wegweiser.zone
+            # is built from (wegweiser's docs/decisions/d54-installed-from-packages.md).
+            GOOS=linux GOARCH="$arch" make package
           done
-          cd dist && sha256sum ./*.tar.gz > checksums.txt && cat checksums.txt
+          cd dist && sha256sum ./*.tar.gz ./*.deb ./*.rpm > checksums.txt && cat checksums.txt
 
       - name: Take the notes from the changelog
         run: |
