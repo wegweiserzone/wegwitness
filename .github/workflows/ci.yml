@@ -141,7 +141,8 @@ jobs:
       # and the package must not depend on anything there.
       - name: The deb where dpkg leaves out the documentation
         run: |
-          docker run --rm -v "$PWD:/src:ro" -w /src docker.io/library/ubuntu:24.04             sh scripts/deb-minimal-test.sh dist/wegwitness_0.0.2_amd64.deb
+          docker run --rm -v "$PWD:/src:ro" -w /src docker.io/library/ubuntu:24.04 \
+            sh scripts/deb-minimal-test.sh dist/wegwitness_0.0.2_amd64.deb
 
   vuln:
     name: Vulnerabilities
