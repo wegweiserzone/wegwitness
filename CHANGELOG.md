@@ -8,6 +8,10 @@ behaviour may change without a deprecation period.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.2.0] - 2026-11-01
+
 ### Added
 
 - Every release carries deb and rpm packages for amd64 and arm64 beside the archives,
@@ -64,5 +68,6 @@ cluster takes a witness.
   `ghcr.io/wegweiserzone/wegwitness`. Before anything is published, the witness is run
   against the oldest Wegweiser it claims to work with.
 
-[Unreleased]: https://github.com/wegweiserzone/wegwitness/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/wegweiserzone/wegwitness/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/wegweiserzone/wegwitness/releases/tag/v0.2.0
 [0.1.0]: https://github.com/wegweiserzone/wegwitness/releases/tag/v0.1.0
