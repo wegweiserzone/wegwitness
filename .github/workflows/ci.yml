@@ -102,6 +102,28 @@ jobs:
           docker run --rm wegwitness:ci version
           docker inspect --format '{{json .Config.Healthcheck}}' wegwitness:ci | grep -q 'wegwitness.*health'
 
+  # The unit under a systemd that is running, rather than read by
+  # systemd-analyze: the runner has one, and root, and nothing installed that
+  # the test would clobber. The test is a script so that it runs the same on a
+  # developer's machine.
+  systemd:
+    name: systemd
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: Build
+        run: make build
+
+      - name: The unit starts the witness
+        run: sudo sh scripts/systemd-test.sh bin/wegwitness
+
   vuln:
     name: Vulnerabilities
     runs-on: ubuntu-latest

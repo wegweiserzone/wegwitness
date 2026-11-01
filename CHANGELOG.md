@@ -8,7 +8,14 @@ behaviour may change without a deprecation period.
 
 ## [Unreleased]
 
-Nothing yet.
+### Security
+
+- The systemd unit reads `/etc/wegwitness/config.yaml` as a credential, so the file can be
+  mode 0600 and owned by root, as one holding the cluster's secret should be. The witness
+  runs as a dynamic user, and until now could read the file only if every account on the
+  host could. It no longer starts without the file. A unit installed by hand has to be
+  replaced to get this, and a `--join` added to it now belongs in a drop-in, as the unit's
+  comment shows.
 
 ## [0.1.0] - 2026-10-06
 

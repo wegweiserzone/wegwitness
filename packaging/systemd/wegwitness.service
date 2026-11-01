@@ -6,10 +6,15 @@ Wants=network-online.target
 
 [Service]
 Type=exec
-ExecStart=/usr/bin/wegwitness serve
+ExecStart=/usr/bin/wegwitness serve --config ${CREDENTIALS_DIRECTORY}/config.yaml
 # On the first start, and harmless after it: a witness that is a member
-# already ignores the flag.
-# ExecStart=/usr/bin/wegwitness serve --join 192.0.2.1:8054
+# already ignores the flag. `systemctl edit wegwitness` puts it in a drop-in,
+# which an upgrade of the package leaves alone; the empty line clears the
+# command above rather than adding a second one.
+#
+#   [Service]
+#   ExecStart=
+#   ExecStart=/usr/bin/wegwitness serve --config ${CREDENTIALS_DIRECTORY}/config.yaml --join 192.0.2.1:8054
 
 # Nothing to reload: the file holds what a witness needs to start, and
 # everything else is the cluster's log.
@@ -17,13 +22,19 @@ ExecStart=/usr/bin/wegwitness serve
 DynamicUser=yes
 
 # StateDirectory is /var/lib/wegwitness, where the log is kept by default.
-# ConfigurationDirectory is /etc/wegwitness, which is read by default. The
-# configuration holds the cluster's secret, and so does the log: a witness is
-# exactly as sensitive as a server holding the data (wegweiser's
+# The configuration holds the cluster's secret, and so does the log: a witness
+# is exactly as sensitive as a server holding the data (wegweiser's
 # docs/decisions/d39-the-witness.md).
 StateDirectory=wegwitness
 StateDirectoryMode=0700
 ConfigurationDirectory=wegwitness
+
+# So the configuration wants to be readable by root alone, and a dynamic user
+# is no user a file can be given to. systemd reads it as root and hands the
+# witness a copy only the witness can read (wegweiser's
+# docs/decisions/d54-installed-from-packages.md). The copy is taken at each
+# start, which is the only time it is read. A missing file stops the start.
+LoadCredential=config.yaml:/etc/wegwitness/config.yaml
 
 # The cluster port needs no capability: it is not a privileged port.
 CapabilityBoundingSet=
