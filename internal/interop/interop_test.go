@@ -137,13 +137,19 @@ func (s *server) stop() {
 	}
 	done := make(chan error, 1)
 	go func() { done <- s.cmd.Wait() }()
+	var err error
 	select {
-	case <-done:
+	case err = <-done:
 	case <-time.After(10 * time.Second):
-		if err := s.cmd.Process.Kill(); err != nil {
-			s.t.Logf("kill weg: %v", err)
+		if kerr := s.cmd.Process.Kill(); kerr != nil {
+			s.t.Logf("kill weg: %v", kerr)
 		}
-		<-done
+		err = <-done
+	}
+	// How weg ended says whether it drained or was cut off, which is what a
+	// failing interop test wants to know.
+	if err != nil {
+		s.t.Logf("weg exited: %v", err)
 	}
 	s.cmd = nil
 }
