@@ -10,7 +10,7 @@ set -eu
 old=$1
 new=$2
 config=/etc/wegwitness/config.yaml
-example=/usr/share/doc/wegwitness/wegwitness.example.yaml
+example=/usr/share/wegwitness/wegwitness.example.yaml
 
 fail() {
 	echo "FAIL: $*" >&2

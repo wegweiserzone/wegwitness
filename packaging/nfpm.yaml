@@ -33,15 +33,28 @@ contents:
 
   # The example, and not /etc/wegwitness/config.yaml itself. The post-install
   # script copies it there once, when there is no file yet; owning the file
-  # would have dpkg ask about it on every release whose example changed.
-  - dst: /usr/share/doc/wegwitness
+  # would have dpkg ask about it on every release whose example changed. It is
+  # not under /usr/share/doc, which Ubuntu's container and cloud images tell
+  # dpkg to leave out.
+  - dst: /usr/share/wegwitness
     type: dir
   - src: docs/wegwitness.example.yaml
-    dst: /usr/share/doc/wegwitness/wegwitness.example.yaml
+    dst: /usr/share/wegwitness/wegwitness.example.yaml
+    file_info:
+      mode: 0644
+
+  # The licence travels with the binary (AGPL-3.0). Under the name Debian
+  # gives it, it survives those images too: they keep copyright files.
+  - dst: /usr/share/doc/wegwitness
+    type: dir
+  - src: LICENSE
+    dst: /usr/share/doc/wegwitness/copyright
+    packager: deb
     file_info:
       mode: 0644
   - src: LICENSE
     dst: /usr/share/doc/wegwitness/LICENSE
+    packager: rpm
     file_info:
       mode: 0644
   - src: README.md

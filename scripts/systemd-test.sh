@@ -128,7 +128,7 @@ echo ok
 
 echo "--- a first installation writes the example as the configuration, mode 0600"
 dpkg -i "$new" >/dev/null
-[ "$(sum "$config")" = "$(sum /usr/share/doc/wegwitness/wegwitness.example.yaml)" ] ||
+[ "$(sum "$config")" = "$(sum /usr/share/wegwitness/wegwitness.example.yaml)" ] ||
 	fail "$config is not the example"
 [ "$(stat -c '%a %U' "$config")" = "600 root" ] || fail "$config is $(stat -c '%a %U' "$config")"
 echo ok

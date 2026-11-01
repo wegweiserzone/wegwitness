@@ -26,7 +26,7 @@ config=/etc/wegwitness/config.yaml
 # cluster's secret; the unit hands it to the witness as a credential.
 if [ ! -e "$config" ]; then
 	install -d -m 0755 /etc/wegwitness
-	install -m 0600 -o root -g root /usr/share/doc/wegwitness/wegwitness.example.yaml "$config"
+	install -m 0600 -o root -g root /usr/share/wegwitness/wegwitness.example.yaml "$config"
 fi
 
 if [ -d /run/systemd/system ]; then
