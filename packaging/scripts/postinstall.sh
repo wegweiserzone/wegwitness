@@ -40,6 +40,7 @@ if [ -d /run/systemd/system ]; then
 	fi
 fi
 
-if [ "$upgrade" = no ]; then
+# A first installation, or one over a removal that left the unit disabled.
+if ! { [ -d /run/systemd/system ] && systemctl is-enabled --quiet wegwitness.service; }; then
 	echo "Edit $config, then start the witness: systemctl enable --now wegwitness"
 fi

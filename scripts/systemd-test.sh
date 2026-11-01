@@ -120,7 +120,9 @@ dpkg -r wegwitness >/dev/null
 echo ok
 
 echo "--- purging takes the configuration and keeps the log"
-dpkg -i "$new" >/dev/null
+dpkg -i "$new" >/tmp/systemd-test-dpkg.log 2>&1
+grep -q "enable --now" /tmp/systemd-test-dpkg.log ||
+	fail "installing again after a removal does not say how to start it"
 dpkg --purge wegwitness >/dev/null
 [ ! -e /etc/wegwitness ] || fail "purging left /etc/wegwitness"
 [ -n "$(ls -A "$state")" ] || fail "purging took the log"
